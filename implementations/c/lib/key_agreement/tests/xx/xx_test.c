@@ -25,7 +25,7 @@
 bool scripted_xx = false;
 bool run_initiator = false;
 bool run_responder = false;
-OckamInternetAddress ockam_ip;
+OckamInternetAddress ockam_ip = {"", "127.0.0.1", 8000};
 
 void usage() {
   printf("OPTIONS\n");
@@ -77,71 +77,6 @@ OckamError parse_opts(int argc, char* argv[]) {
 
   return status;
 }
-
-/**
- ********************************************************************************************************
- *                                          TestInitiatorPrologue()
- ********************************************************************************************************
- *
- * Summary: This differs from the production handshake_prologue in that it
- *initiates the handshake with a known set of keys so that cipher results can be
- *verified along the way.
- *
- * @param xx [in/out] - pointer to handshake struct
- * @return [out] - kErrorNone on success
- */
-
-//OckamError TestInitiatorPrologue(KeyEstablishmentXX *xx) {
-//  OckamError status = kErrorNone;
-//  uint8_t key[KEY_SIZE];
-//  uint32_t keyBytes;
-//
-//  // 1. Pick a static 25519 keypair for this handshake and set it to s
-//  string_to_hex(INITIATOR_STATIC, key, &keyBytes);
-//  status = xx->vault->KeySetPrivate(xx->vault_ctx, kOckamVaultKeyStatic, key, KEY_SIZE);
-//  if (kErrorNone != status) {
-//    log_error(status, "failed to generate static keypair in initiator_step_1");
-//    goto exit_block;
-//  }
-//
-//  status = xx->vault->KeyGetPublic(xx->vault_ctx, kOckamVaultKeyStatic, xx->s, KEY_SIZE);
-//  if (kErrorNone != status) {
-//    log_error(status, "failed to generate get static public key in initiator_step_1");
-//    goto exit_block;
-//  }
-//
-//  // 2. Generate an ephemeral 25519 keypair for this handshake and set it to e
-//  string_to_hex(INITIATOR_EPH, key, &keyBytes);
-//  status = xx->vault->KeySetPrivate(xx->vault_ctx, kOckamVaultKeyEphemeral, key, KEY_SIZE);
-//  if (kErrorNone != status) {
-//    log_error(status, "failed to generate static keypair in initiator_step_1");
-//    goto exit_block;
-//  }
-//
-//  status = xx->vault->KeyGetPublic(xx->vault_ctx, kOckamVaultKeyEphemeral, xx->e, KEY_SIZE);
-//  if (kErrorNone != status) {
-//    log_error(status, "failed to generate get static public key in initiator_step_1");
-//    goto exit_block;
-//  }
-//
-//  // Nonce to 0, k to empty
-//  xx->nonce = 0;
-//  memset(xx->k, 0, sizeof(xx->k));
-//
-//  // Initialize h to "Noise_XX_25519_AESGCM_SHA256" and set prologue to empty
-//  memset(&xx->h[0], 0, SHA256_SIZE);
-//  memcpy(&xx->h[0], PROTOCOL_NAME, PROTOCOL_NAME_SIZE);
-//
-//  // Initialize ck
-//  memset(&xx->ck[0], 0, SHA256_SIZE);
-//  memcpy(&xx->ck[0], PROTOCOL_NAME, PROTOCOL_NAME_SIZE);
-//
-//  // h = SHA256(h || prologue), prologue is empty
-//  mix_hash(xx, NULL, 0);
-//
-//exit_block:
-//  return status;
-//}
 
 const OckamMemory *memory = &ockam_memory_stdlib;
 extern OckamTransport ockamPosixTcpTransport;
