@@ -31,7 +31,9 @@ void usage() {
   printf("OPTIONS\n");
   printf("  -a <xxx.xxx.xxx.xxx>\t\tIP Address\n");
   printf("  -p <portnum>\t\t\tPort\n");
-  printf("  -s \t\t\tUse scripted test case\n\n");
+  printf("  -i \t\t\t\tRun initiator only\n");
+  printf("  -r \t\t\t\tRun responder only \n");
+  printf("  -s \t\t\t\tUse scripted test case\n\n");
 }
 
 OckamError parse_opts(int argc, char* argv[]) {
