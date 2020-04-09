@@ -49,7 +49,6 @@ OckamError parse_opts(int argc, char* argv[]) {
 
       case 'p':
         ockam_ip.port = atoi(&optarg[1]);
-        if(0 == ockam_ip.port) printf("1. Port is zero\n");
         break;
 
       case 'i':
@@ -132,14 +131,14 @@ int main(int argc, char *argv[]) {
         log_error(kTestFailure, "testTcpClient failed");
         initiator_status = -1;
       }
-      // Get exit status from responder_process
-      wait(&fork_status);
-      responder_status = WEXITSTATUS(fork_status);
-      if (0 != responder_status) {
-        responder_status = -2;
-      }
-      status = responder_status + initiator_status;
     } // end if(run_initiator)
+    // Get exit status from responder_process
+    wait(&fork_status);
+    responder_status = WEXITSTATUS(fork_status);
+    if (0 != responder_status) {
+      responder_status = -2;
+    }
+    status = responder_status + initiator_status;
   } else {
     if(run_responder) {
       // This is the server process
