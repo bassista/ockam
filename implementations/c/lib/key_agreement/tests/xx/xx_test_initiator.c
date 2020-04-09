@@ -1,6 +1,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <stdbool.h>
 
 #include "ockam/error.h"
 #include "ockam/key_agreement.h"
@@ -10,6 +11,9 @@
 #include "ockam/transport.h"
 #include "ockam/vault.h"
 #include "xx_test.h"
+
+extern bool scripted_xx;
+extern OckamInternetAddress ockam_ip;
 
 OckamError OckamErrorXXTestInitiatorPrologue(KeyEstablishmentXX *xx) {
   OckamError status = kOckamErrorNone;
@@ -115,33 +119,24 @@ OckamError TestInitiatorHandshake(const OckamVault *vault, OckamVaultCtx *vaultC
   }
 
   // Step 1 send message
-  printf("Sending message 1\n");
   status = xx->transport->Write(transportCtx, sendBuffer, transmit_size);
   if (kErrorNone != status) {
     log_error(status, "ockam_SendBlocking after initiator_step_1 failed");
     goto exit_block;
   }
-  printf("Sent message 1\n");
 
   // Msg 2 receive
-  printf("Receiving message 2\n");
   status = xx->transport->Read(transportCtx, recv_buffer, sizeof(recv_buffer), &bytesReceived);
   if (kErrorNone != status) {
     log_error(status, "ockam_ReceiveBlocking failed on msg 2");
     goto exit_block;
   }
-  printf("Got message 2\n");
 
   // Msg 2 process
   status = XXInitiatorM2Process(xx, recv_buffer, bytesReceived);
   if (kErrorNone != status) {
     log_error(status, "ockam_ReceiveBlocking failed on msg 2");
     goto exit_block;
-  }
-  print_uint8_str(xx->re, KEY_SIZE, "Initiator re");
-  print_uint8_str(recv_buffer, 64, "M2");
-  if(0 != memcmp(xx->re, recv_buffer, 32)) {
-    printf("Unexpected remote ephemeral key\n");
   }
 
   // Msg 3 make
@@ -176,18 +171,10 @@ exit_block:
   return status;
 }
 
-OckamError EstablishInitiatorConnection(int argc, char *argv[], const OckamTransport *transport,
+OckamError EstablishInitiatorConnection(const OckamTransport *transport,
                                         OckamTransportCtx *transportCtx) {
   OckamError status = kErrorNone;
-  OckamInternetAddress responder_address;
   OckamTransportConfig tcpConfig = {kBlocking};
-
-  // Get the IP address of the responder
-  status = GetIpInfo(argc, argv, &responder_address);
-  if (kErrorNone != status) {
-    log_error(status, "failed to get address into");
-    goto exit_block;
-  }
 
   // Initialize TCP transportCtx
   status = transport->Create(transportCtx, &tcpConfig);
@@ -197,7 +184,7 @@ OckamError EstablishInitiatorConnection(int argc, char *argv[], const OckamTrans
   }
 
   // Try to connect
-  status = transport->Connect(*transportCtx, &responder_address);
+  status = transport->Connect(*transportCtx, &ockam_ip);
   if (kErrorNone != status) {
     log_error(status, "connect failed");
     goto exit_block;
@@ -209,7 +196,7 @@ exit_block:
 
 extern const OckamTransport ockamPosixTcpTransport;
 
-OckamError XXTestInitiator(int argc, char *argv[], const OckamVault *vault, void *vault_ctx) {
+OckamError XXTestInitiator(const OckamVault *vault, void *vault_ctx) {
   const OckamTransport *transport = &ockamPosixTcpTransport;
 
   OckamError status = kErrorNone;
@@ -226,58 +213,66 @@ OckamError XXTestInitiator(int argc, char *argv[], const OckamVault *vault, void
   /*-------------------------------------------------------------------------
    * Establish transport transportCtx with responder
    *-----------------------------------------------------------------------*/
-  printf("Establishing connection...");
-  status = EstablishInitiatorConnection(argc, argv, transport, &transportCtx);
+  status = EstablishInitiatorConnection(transport, &transportCtx);
   if (kErrorNone != status) {
     log_error(status, "Failed to establish transportCtx with responder");
     goto exit_block;
   }
-  printf("SUCCESS!\n");
 
   /*-------------------------------------------------------------------------
    * Secure the transportCtx
    *-----------------------------------------------------------------------*/
-  printf("Initiating handshake...\n");
-  status = TestInitiatorHandshake(vault, vault_ctx, transport, transportCtx, &handshake);
+
+  if(scripted_xx) {
+    status = TestInitiatorHandshake(vault, vault_ctx, transport, transportCtx, &handshake);
+  } else {
+    status = OckamKeyEstablishInitiatorXX(vault, vault_ctx, transport, transportCtx, &handshake);
+  }
   if (kErrorNone != status) {
     log_error(status, "ockam_initiator_handshake");
     goto exit_block;
   }
-  printf("SUCCESS!\n");
 
   /*-------------------------------------------------------------------------
    * Receive the test message
    *-----------------------------------------------------------------------*/
-  printf("Sending test message...\n");
   status = transport->Read(transportCtx, recv_buffer, sizeof(recv_buffer), &bytesReceived);
   if (kErrorNone != status) {
     log_error(status, "ockam_ReceiveBlocking failed on test message");
     goto exit_block;
   }
-  printf("SUCCESS!\n");
 
   /*-------------------------------------------------------------------------
    * Confirm the test message
    *-----------------------------------------------------------------------*/
   status = XXDecrypt(&handshake, test, TEST_MSG_BYTE_SIZE, recv_buffer, bytesReceived, &test_bytes);
-  printf("Receiving test message...");
   if (kErrorNone != status) {
     log_error(status, "XXDecrypt failed on test msg");
     goto exit_block;
   }
-  printf("SUCCESS!\n");
-  string_to_hex(TEST_MSG_RESPONDER, test_responder, NULL);
-  if (0 != memcmp((void *)test, test_responder, TEST_MSG_BYTE_SIZE)) {
-    status = kXXKeyAgreementTestFailed;
+  if(scripted_xx) {
+    string_to_hex(TEST_MSG_RESPONDER, test_responder, NULL);
+    if (0 != memcmp(( void * ) test, test_responder, TEST_MSG_BYTE_SIZE)) {
+      status = kXXKeyAgreementTestFailed;
+    }
+  } else {
+    if(0 != memcmp(ACK, test, ACK_SIZE)) {
+      status = kXXKeyAgreementTestFailed;
+    }
+  }
+  if(kOckamErrorNone != status) {
     log_error(status, "Received bad epilogue message");
     goto exit_block;
   }
-
   /*-------------------------------------------------------------------------
    * Make the test message
    *-----------------------------------------------------------------------*/
-  string_to_hex(TEST_MSG_INITIATOR, test, &test_bytes);
-  status = XXEncrypt(&handshake, test, test_bytes, sendBuffer, sizeof(sendBuffer), &transmit_size);
+  if(scripted_xx) {
+    string_to_hex(TEST_MSG_INITIATOR, test, &test_bytes);
+    status = XXEncrypt(&handshake, test, test_bytes, sendBuffer, sizeof(sendBuffer), &transmit_size);
+    } else {
+      status = XXEncrypt(&handshake, (uint8_t*)OK, OK_SIZE, sendBuffer, sizeof(sendBuffer), &transmit_size);
+    }
   if (kErrorNone != status) {
     log_error(status, "initiator_encrypt failed on test message");
     goto exit_block;
@@ -286,11 +281,13 @@ OckamError XXTestInitiator(int argc, char *argv[], const OckamVault *vault, void
   /*-------------------------------------------------------------------------
    * Confirm the test message
    *-----------------------------------------------------------------------*/
-  string_to_hex(MSG_5_CIPHERTEXT, test, &test_bytes);
-  if (0 != memcmp(test, sendBuffer, transmit_size)) {
-    status = kXXKeyAgreementTestFailed;
-    log_error(status, "Msg 5 failed");
-    goto exit_block;
+  if(scripted_xx) {
+    string_to_hex(MSG_5_CIPHERTEXT, test, &test_bytes);
+    if (0 != memcmp(test, sendBuffer, transmit_size)) {
+      status = kXXKeyAgreementTestFailed;
+      log_error(status, "Msg 5 failed");
+      goto exit_block;
+    }
   }
 
   /*-------------------------------------------------------------------------

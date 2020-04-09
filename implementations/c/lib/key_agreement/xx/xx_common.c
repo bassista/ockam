@@ -214,20 +214,3 @@ OckamError make_vector(uint64_t nonce, uint8_t *vector) {
   }
   return kOckamErrorNone;
 }
-
-OckamError GetIpInfo(int argc, char *argv[], OckamInternetAddress *p_address) {
-  OckamError status = kErrorNone;
-
-  memset(p_address, 0, sizeof(*p_address));
-
-  if (3 != argc) {
-    strcpy(p_address->IPAddress, DEFAULT_IP_ADDRESS);
-    p_address->port = DEFAULT_IP_PORT;
-  } else {
-    strcpy(p_address->IPAddress, argv[1]);
-    p_address->port = strtoul(argv[2], NULL, 0);
-  }
-
-exit_block:
-  return status;
-}

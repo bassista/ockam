@@ -26,7 +26,7 @@
  ********************************************************************************************************
  */
 
-OckamError OckamKeyEstablishResponderXX(OckamVault *vault, OckamVaultCtx *vault_ctx, OckamTransport *transport,
+OckamError OckamKeyEstablishResponderXX(const OckamVault *vault, OckamVaultCtx *vault_ctx, const OckamTransport *transport,
                                         OckamTransportCtx transportCtx, KeyEstablishmentXX *xx) {
   OckamError status = kOckamErrorNone;
   uint8_t sendBuffer[MAX_TRANSMIT_SIZE];

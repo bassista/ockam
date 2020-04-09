@@ -18,7 +18,7 @@
  *                                           GLOBAL FUNCTIONS *
  ********************************************************************************************************
  */
-OckamError OckamKeyEstablishInitiatorXX(OckamVault *vault, OckamVaultCtx *vault_ctx, OckamTransport *transport,
+OckamError OckamKeyEstablishInitiatorXX(const OckamVault *vault, OckamVaultCtx *vault_ctx, const OckamTransport *transport,
                                         OckamTransportCtx transport_ctx, KeyEstablishmentXX *xx) {
   OckamError status = kOckamErrorNone;
   uint8_t sendBuffer[MAX_TRANSMIT_SIZE];
