@@ -202,6 +202,7 @@ OckamError EstablishResponderConnection(const OckamTransport *transport,
   }
 
   // Wait for a connection
+  printf("Listening on %s %u\n", ockam_ip.IPAddress, ockam_ip.port);
   status = transport->Listen(*listenerCtx, &ockam_ip, connectionCtx);
   if (kErrorNone != status) {
     log_error(status, "listen failed");

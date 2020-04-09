@@ -46,11 +46,11 @@ OckamError parse_opts(int argc, char* argv[]) {
         return 2;
 
       case 'a':
-        strcpy(ockam_ip.IPAddress, optarg);
+        strcpy(ockam_ip.IPAddress, &optarg[1]);
         break;
 
       case 'p':
-        ockam_ip.port = atoi(optarg);
+        ockam_ip.port = atoi(&optarg[1]);
         break;
 
       case 'i':
