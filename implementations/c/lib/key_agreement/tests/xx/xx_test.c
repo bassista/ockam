@@ -29,8 +29,8 @@ OckamInternetAddress ockam_ip = {"", "127.0.0.1", 8000};
 
 void usage() {
   printf("OPTIONS\n");
-  printf("  -a:<xxx.xxx.xxx.xxx>\t\tIP Address\n");
-  printf("  -p:<portnum>\t\t\tPort\n");
+  printf("  -a <xxx.xxx.xxx.xxx>\t\tIP Address\n");
+  printf("  -p <portnum>\t\t\tPort\n");
   printf("  -i \t\t\t\tRun initiator only\n");
   printf("  -r \t\t\t\tRun responder only \n");
   printf("  -s \t\t\t\tUse scripted test case\n\n");
@@ -46,11 +46,11 @@ OckamError parse_opts(int argc, char* argv[]) {
         return 2;
 
       case 'a':
-        strcpy(ockam_ip.IPAddress, &optarg[1]);
+        strcpy(ockam_ip.IPAddress, optarg);
         break;
 
       case 'p':
-        ockam_ip.port = atoi(&optarg[1]);
+        ockam_ip.port = atoi(optarg);
         break;
 
       case 'i':

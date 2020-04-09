@@ -24,15 +24,15 @@ defmodule Ockam.Integration.Handshake.Test do
   @tag transport_config: [listen_address: "0.0.0.0", listen_port: 4000]
   @tag capture_log: false
   test "with C implementation as initiator", %{config: _config} do
-    assert {:ok, _} = invoke_test_executable!()
+    assert {:ok, _} = run_initiator!(["-a", "127.0.0.1", "-p", "4000"])
   end
 
 
   @tag initiator: true
-  @tag listen_port: 4000
+  @tag listen_port: 5000
   test "with C implementation as responder", %{listen_port: port} do
-    # TODO: Start server first
-    # assert {:ok, _} = invoke_test_executable!([...])
+    # Start server first
+    assert {:ok, _} = run_responder!(["-a", "127.0.0.1", "-p", "5000"])
 
     {:ok, addr} = Address.new(:inet, :loopback, port)
     socket = Socket.new(:client, addr)
@@ -49,16 +49,54 @@ defmodule Ockam.Integration.Handshake.Test do
     assert {:ok, _} = Socket.close(transport)
   end
 
-  defp invoke_test_executable!(args \\ []) when is_list(args) do
-    init_dir = Path.expand(Path.join([__DIR__, "..", "..", "..", "c", "_build"]))
-    init_cmd = Path.join([init_dir, "Debug", "tests", "ockam_key_agreement_tests_xx_integration"])
-    {output, status} = System.cmd(init_cmd, args, cd: init_dir, stderr_to_stdout: true)
+  defp run_initiator!(args \\ []) when is_list(args) do
+    invoke_test_executable!(["-i" | args])
+  end
 
-    if status != 0 do
-      Logger.warn("Captured Output:\n" <> output)
-      {:error, status}
-    else
-      {:ok, output}
+  defp run_responder!(args \\ []) when is_list(args) do
+    invoke_test_executable!(["-r" | args])
+  end
+
+  defp invoke_test_executable!(args \\ []) when is_list(args) do
+    this = self()
+    spawn_link(fn ->
+      Process.flag(:trap_exit, true)
+
+      init_dir = Path.expand(Path.join([__DIR__, "..", "..", "..", "c", "_build"]))
+      init_cmd = Path.join([init_dir, "Debug", "tests", "ockam_key_agreement_tests_xx_full"])
+      port = Port.open({:spawn_executable, init_cmd}, [:binary, args: args])
+
+      #{output, status} = System.cmd(init_cmd, args, cd: init_dir, stderr_to_stdout: true, into: IO.stream(:stdio, :line))
+      send(this, :spawned)
+      monitor_test_executable(this, port, <<>>)
+    end)
+
+    receive do
+      :spawned ->
+        {:ok, ""}
+
+      {:ok, _output} = result ->
+        result
+
+      {:error, reason, output} ->
+        Logger.warn("Captured Output:\n" <> output)
+        {:error, reason}
+    end
+  end
+
+  defp monitor_test_executable(parent, port, output) do
+    receive do
+      {^port, {:data, data}} ->
+        monitor_test_executable(parent, port, output <> data)
+
+      {^port, :closed} ->
+        send(parent, {:ok, output})
+
+      {:EXIT, ^port, reason} ->
+        send(parent, {:error, reason, output})
+
+      {:EXIT, ^parent, _} ->
+        Port.close(port)
     end
   end
 end
